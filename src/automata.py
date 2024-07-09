@@ -331,6 +331,7 @@ def convert_to_dfa(automata):
     origemPorSimbolo = []
     destinoPorSimbolo = []
     DicRegrasPorSimbolo = {}
+    CopiaEstados = Estados
     for es in Estados:
         #icont+=1
         #Novo estado para unificar as transições com mesma saida
@@ -363,12 +364,15 @@ def convert_to_dfa(automata):
                         #print(r[2])
                         nes.append(r[2])
                     if len(nes)>1:
+                        strNES =""
                         #agora so presciso do simbolo o resto pego de outras variaveis
                         novaRegraApartirNES={}
                         novaRegraApartirNES.clear
                         novaRegraApartirNES.update({"origem":r[0]})
                         novaRegraApartirNES.update({"simbolo":sim})
-                        novaRegraApartirNES.update({"destino":nes})
+                        for esNes in sorted(nes):
+                            strNES = strNES + str(esNes)
+                        novaRegraApartirNES.update({"destino":strNES})
                     else:
                         novaRegraApartirNES={}
                         novaRegraApartirNES.clear
@@ -457,8 +461,8 @@ def convert_to_dfa(automata):
             for rnova in NovalistaRegras:
                 #return
                 if rnova[1] == "&":
-                    print('aqui')
-                    print(rnova)
+                    #print('aqui')
+                    #print(rnova)
                     return 
                     nes = []
                     nes.append(rnova[0])
@@ -467,13 +471,13 @@ def convert_to_dfa(automata):
                     ret = VerificaSeqDestinoVazio(rnova,strNVEs,nes,NovalistaRegras)
                     if ret != 0:
                         NovaRegras = NovaRegrasTransicao(rnova[0],"&",ret[1])
-                        if tuple((ret[0],ret[1]))not in nesNdes:
+                        if tuple(ret[0],ret[1])not in nesNdes:
                             nesNdes.append(tuple((ret[0],ret[1])))
                             if len(listaNovosEstados)>1:
                                 verificaEsInicialFinal(ret[0],ret[1],automata)
                     else:
                         NovaRegras = NovaRegrasTransicao(rnova[0],"&",strNVEs)
-                        if(tuple((nes,strNES))not in nesNdes):
+                        if(tuple(nes,strNES)not in nesNdes):
                             nesNdes.append(tuple((nes,strNES)))
                             verificaEsInicialFinal(nes,strNES,automata)
                             if(strNES not in automata["estados"]):
@@ -491,8 +495,7 @@ def convert_to_dfa(automata):
             #print(Estados)
             #if(icont > qtdEstados):
             if FlagNovoEstado:
-                FlagNovoEstado = False
-                print('cheguei aqui')
+                #print('cheguei aqui')
                 nes = []
                 #nesAux =[]
                 for sim in simbolos:
@@ -593,12 +596,53 @@ def convert_to_dfa(automata):
                         #bkp do automato estados 
                         #atualizaEstados = automata["estados"]
                         #'''
+    else:
+        logLista = []
+        FlagNovoEstado = False
+        #print("aaaaaaaaa")
+        ### novas origens para os novos estados
+        estados = automata.get("estados")
+        #arrumar o armazenamento da variavel em todos os pontos
+        #print(nesNdes)
+        #percorre a lista de tuplas
+        for esDes in nesNdes:
+            for sim in simbolos:
+                nDes = []
+                TupleNovaRegra = []
+                #for es in estados:
+                for inr,nr in enumerate(NovalistaRegras):
+                    #percorre os estados que faz parte do novo estado
+                    for esDoNovoEstado in esDes[0]:
+                        if nr[0] == esDoNovoEstado and nr[1] == sim:
+                            #logLista.append(nr)
+                            if nr[2] not in nDes:
+                                nDes.append(nr[2])
+                    else:
+                        if len(nDes)>0:
+                            TupleNovaRegra.append((str(esDes[1]),str(sim),nDes))
+                else:
+                    for TnovaRegra in TupleNovaRegra:
+                        strDes = ""
+                        for snDes in sorted(TnovaRegra[2]):
+                            strDes = strDes + snDes
+                        #print("logTnovaregra")
+                        #print(TnovaRegra[0] + " -- " + TnovaRegra[1] + " -- " +strDes)
+                        NovaRegras = NovaRegrasTransicao(TnovaRegra[0],TnovaRegra[1],strDes) 
+                        if NovaRegras not in NovalistaRegras:
+                            NovalistaRegras.append(NovaRegras)
+                    #       nome do novo estado
+                    #origem esDes[1]
+                    #simbolo sim
+                    #destino strDes(gerado pela junção do Ndes)
+            #print("log")
+            #print(logLista)
+        ###
     #print("-------------")
     #print(automata["estados"])
     regras = automata.get("RegrasTransicao")
     print("------------------")
     #print(automata["estados"])
-    for novasregras in regras:
+    '''for novasregras in regras:
         print(novasregras[0] + " -- " + novasregras[1] + " -- " + novasregras[2])
     print("------------------")
     #print(DicRegrasPorSimbolo)
@@ -609,6 +653,7 @@ def convert_to_dfa(automata):
         print("o\n")
         print(DicRegrasPorSimbolo.get("destino" + str(iSim)))
         print("d\n")
+    '''
     for novasregras1 in NovalistaRegras:
         print(str(novasregras1[0]) + " -- " + str(novasregras1[1]) + " -- " + str(novasregras1[2]))
     automata["RegrasTransicao"] = []
@@ -626,8 +671,8 @@ def montaNovoEstadoInserindoRegra(nes,strNES,novaRegraApartirNES,automata,nesNde
         #nesNdes[0]=(["q1","q2"],"q1q2")
         #nesNdes = (["q1","q2"],"q1q2"),
         #          (["q1","q2"],"q1q2")
-        nesNdes.append(tuple((nes,strNES)))
-
+        if tuple((nes,strNES)) not in nesNdes:
+            nesNdes.append(tuple((nes,strNES)))
         NovaRegras = NovaRegrasTransicao(origemNovaRegra,simboloNovaRegra,strNES)
         if NovaRegras not in NovalistaRegras:
             NovalistaRegras.append(NovaRegras)
@@ -637,8 +682,9 @@ def montaNovoEstadoInserindoRegra(nes,strNES,novaRegraApartirNES,automata,nesNde
             #contagem de estados
             FlagNovoEstado = True
             #icont+=1
-        
         nes = []
+        #if FlagNovoEstado:
+        #    return tuple(FlagNovoEstado,strNES)
     else:
         NovaRegras = NovaRegrasTransicao(origemNovaRegra,simboloNovaRegra,destinoNovaRegra) 
         if NovaRegras not in NovalistaRegras:
@@ -733,7 +779,7 @@ def verificaEsInicialFinal(listaNovosEstados,strEstadoNovo,automata):
     if strEstadoNovo not in automata["estados"]:
         automata["estados"].extend([strEstadoNovo])
     return 0
-#"""
+"""
 def main():
     #caminhoPasta = os.getcwd()
     #filename = caminhoPasta + "/Testes/01-simples.txt"
@@ -741,4 +787,4 @@ def main():
     filename = "teste.txt"
     load_automata(filename)
 main()
-#"""
+"""
