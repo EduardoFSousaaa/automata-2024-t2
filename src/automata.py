@@ -458,6 +458,7 @@ def convert_to_dfa(automata):
         #arrumar origem e destino quando é simbolo de vazio
         #print(NovalistaRegras)
         if FlagWordVazia == True:
+            retornoverificaEsInicialFinal = 0
             for rnova in NovalistaRegras:
                 #return
                 if rnova[1] == "&":
@@ -474,14 +475,18 @@ def convert_to_dfa(automata):
                         if tuple(ret[0],ret[1])not in nesNdes:
                             nesNdes.append(tuple((ret[0],ret[1])))
                             if len(listaNovosEstados)>1:
-                                verificaEsInicialFinal(ret[0],ret[1],automata)
+                                retornoverificaEsInicialFinal= verificaEsInicialFinal(ret[0],ret[1],automata,NovalistaRegras,RegrasTransicao)
+                                if retornoverificaEsInicialFinal !={} and retornoverificaEsInicialFinal != 0:
+                                    automata[retornoverificaEsInicialFinal[0]] = retornoverificaEsInicialFinal[1]
                     else:
                         NovaRegras = NovaRegrasTransicao(rnova[0],"&",strNVEs)
                         if(tuple(nes,strNES)not in nesNdes):
                             nesNdes.append(tuple((nes,strNES)))
-                            verificaEsInicialFinal(nes,strNES,automata)
-                            if(strNES not in automata["estados"]):
-                                automata["estados"].extend(strNES)
+                            retornoverificaEsInicialFinal = verificaEsInicialFinal(nes,strNES,automata,NovalistaRegras,RegrasTransicao)
+                            if retornoverificaEsInicialFinal !={} and retornoverificaEsInicialFinal != 0:
+                                automata[retornoverificaEsInicialFinal[0]] = retornoverificaEsInicialFinal[1]
+                            #if(strNES not in automata["estados"]):
+                                #automata["estados"].extend(strNES)
                     if NovaRegras not in NovalistaRegras :
                         NovalistaRegras.append(NovaRegras)                
         else:
@@ -654,11 +659,18 @@ def convert_to_dfa(automata):
         print(DicRegrasPorSimbolo.get("destino" + str(iSim)))
         print("d\n")
     '''
+    #print(type(automata))
+    for pAutomato in automata.keys():
+        print(str(automata[pAutomato]) +" ---"+ str(pAutomato)) 
+    print("----------")
+    print("----------")
+    
     for novasregras1 in NovalistaRegras:
         print(str(novasregras1[0]) + " -- " + str(novasregras1[1]) + " -- " + str(novasregras1[2]))
     automata["RegrasTransicao"] = []
     automata["RegrasTransicao"] = NovalistaRegras
 def montaNovoEstadoInserindoRegra(nes,strNES,novaRegraApartirNES,automata,nesNdes,DicRegrasPorSimbolo,NovalistaRegras,FlagMontaDicionarioPorSimbolo,origemPorSimbolo,destinoPorSimbolo):
+    retornoverificaEsInicialFinal = {}
     NovaRegrasTransicao = namedtuple("RegrasTransicao",["origem" , "simbolo", "destino"])
     FlagNovoEstado = False
     #print(novaRegraApartirNES)
@@ -666,7 +678,9 @@ def montaNovoEstadoInserindoRegra(nes,strNES,novaRegraApartirNES,automata,nesNde
     origemNovaRegra = novaRegraApartirNES.get("origem")
     destinoNovaRegra = novaRegraApartirNES.get("destino")
     if len(nes)>1:
-        verificaEsInicialFinal(nes,strNES,automata)
+        retornoverificaEsInicialFinal = verificaEsInicialFinal(nes,strNES,automata,NovalistaRegras,NovaRegrasTransicao)
+        if retornoverificaEsInicialFinal !={} and retornoverificaEsInicialFinal != 0:
+            automata[retornoverificaEsInicialFinal[0]] = retornoverificaEsInicialFinal[1]
         ###começa os problemas
         #nesNdes[0]=(["q1","q2"],"q1q2")
         #nesNdes = (["q1","q2"],"q1q2"),
@@ -752,13 +766,15 @@ def VerificaSeqDestinoVazio(destino,strNovoEs,listaEs,listaRegras):
             else:
                 break
     return 0
-def verificaEsInicialFinal(listaNovosEstados,strEstadoNovo,automata):
+def verificaEsInicialFinal(listaNovosEstados,strEstadoNovo,automata,listaRegras,RegrasTransicao):
     #print("listanovos estados")
     #print(listaNovosEstados)
     #print("strEstadoNovo")
     #print(strEstadoNovo)
     #print("estados")
     #print(automata["estados"])
+    if strEstadoNovo not in automata["estados"]:
+        automata["estados"].extend([strEstadoNovo])
     if len(listaNovosEstados)>1:
         boolEsFinal = False
         boolEsInicial = False
@@ -772,13 +788,44 @@ def verificaEsInicialFinal(listaNovosEstados,strEstadoNovo,automata):
     else:
         return 0
     if boolEsFinal:
-        automata["estadosFinais"].extend([strEstadoNovo])
+        if strEstadoNovo not in automata["estadosFinais"]:
+            automata["estadosFinais"].extend([strEstadoNovo])
     if boolEsInicial:
-        #automata["NomeEstadoInicial"].extend(strEstadoNovo)
-        automata.update({"NomeEstadoInicial": strEstadoNovo})
-    if strEstadoNovo not in automata["estados"]:
-        automata["estados"].extend([strEstadoNovo])
+        #print("-----------------")
+        #print(strEstadoNovo)
+        #print(automata["NomeEstadoInicial"])
+        if strEstadoNovo != automata["NomeEstadoInicial"]:
+            #print(listaNovosEstados)
+            #print(automata["NomeEstadoInicial"])
+            flagEstadoInicial = False
+            #automata["NomeEstadoInicial"].extend(strEstadoNovo)
+            for novosEstados in listaNovosEstados:
+                if novosEstados == automata["NomeEstadoInicial"]:
+                    flagEstadoInicial = True
+                    break
+            else:
+                if flagEstadoInicial == False:
+                    strNovosEstadoInicial = ""
+                    if automata["NomeEstadoInicial"] not in listaNovosEstados:
+                        listNovoEstadoInicial.append(automata["NomeEstadoInicial"])
+                        for strNovosEstadoInicial in sorted(listaNovosEstados):
+                            strNovosEstadoInicial = strNovosEstadoInicial + strNovosEstadoInicial
+                        NovaRegras = RegrasTransicao(automata.get("NomeEstadoInicial"),"&",strNovosEstadoInicial)
+                        if NovaRegras not in listaRegras:
+                            listaRegras.append(NovaRegras)
+                        del automata[NomeEstadoInicial]
+                        return "NomeEstadoInicial" , strNovosEstadoInicial
+                        #automata.update({"NomeEstadoInicial" : strNovosEstadoInicial})
+                    
+                else:
+                    NovaRegras = RegrasTransicao(automata.get("NomeEstadoInicial"),"&",strEstadoNovo)
+                    #automata.update({"NomeEstadoInicial" : strEstadoNovo})
+                    if NovaRegras not in listaRegras:
+                        listaRegras.append(NovaRegras)
+                    del automata[NomeEstadoInicial]
+                    return "NomeEstadoInicial" , strEstadoNovo
     return 0
+    
 """
 def main():
     #caminhoPasta = os.getcwd()
